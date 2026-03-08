@@ -7,12 +7,16 @@ export const useCategories = () => {
 
     useEffect(() => {
         const fetchCategories = async () => {
-            const querySnapshot = await getDocs(collection(db, "Categories"));
-            const catList = querySnapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-            setCategories(catList);
+            try {
+                const querySnapshot = await getDocs(collection(db, "categories"));
+                const catList = querySnapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+                setCategories(catList);
+            } catch (e) {
+                console.error("useCategories: failed to fetch", e);
+            }
         };
         fetchCategories();
     }, []);
