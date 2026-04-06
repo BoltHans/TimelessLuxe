@@ -48,7 +48,7 @@ export default function ProductCard({ product }) {
             className="luxury-card group cursor-pointer flex flex-col overflow-hidden"
         >
             {/* Image */}
-            <div className="product-img-wrap h-64 bg-luxury-border flex-shrink-0">
+            <div className="product-img-wrap relative h-64 bg-luxury-border flex-shrink-0">
                 <img
                     src={product.imageUrl || "https://via.placeholder.com/400x400/141414/d4982a?text=Timeless+Luxe"}
                     alt={product.name}
