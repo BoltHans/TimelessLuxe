@@ -13,6 +13,7 @@ export default function ProductDetail() {
     const { addToCart } = useCart();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [inWishlist, setInWishlist] = useState(false);
     const [cartMsg, setCartMsg] = useState("");
     const [wishlistMsg, setWishlistMsg] = useState("");
 
@@ -26,6 +27,20 @@ export default function ProductDetail() {
         };
         fetch();
     }, [id]);
+
+    // Check if product is in wishlist
+    useEffect(() => {
+        if (!user || !product?.id) return;
+        const checkWishlist = async () => {
+            try {
+                const snap = await getDoc(doc(db, "users", user.uid, "wishlist", product.id));
+                setInWishlist(snap.exists());
+            } catch (e) {
+                console.error("Check wishlist error:", e);
+            }
+        };
+        checkWishlist();
+    }, [user, product?.id]);
 
     const handleCart = async () => {
         if (!user) { navigate("/login"); return; }
@@ -41,13 +56,22 @@ export default function ProductDetail() {
             const snap = await getDoc(ref);
             if (snap.exists()) {
                 await deleteDoc(ref);
+                setInWishlist(false);
                 setWishlistMsg("Removed from wishlist");
             } else {
                 await setDoc(ref, { productId: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl || "" });
+                // Verify the write succeeded
+                setTimeout(async () => {
+                    const verifySnap = await getDoc(ref);
+                    setInWishlist(verifySnap.exists());
+                }, 150);
                 setWishlistMsg("Added to wishlist!");
             }
             setTimeout(() => setWishlistMsg(""), 2500);
-        } catch (e) { console.error("Wishlist:", e); }
+        } catch (e) { 
+            console.error("Wishlist:", e);
+            setInWishlist(false);
+        }
     };
 
     if (loading) return (
@@ -119,8 +143,8 @@ export default function ProductDetail() {
                             <button onClick={handleCart} className="btn-gold w-full justify-center py-4 text-sm">
                                 {cartMsg || "Add to Cart"}
                             </button>
-                            <button onClick={handleWishlist} className="btn-ghost w-full justify-center py-4 text-sm">
-                                {wishlistMsg || "♡  Save to Wishlist"}
+                            <button onClick={handleWishlist} className={`w-full justify-center py-4 text-sm uppercase tracking-wider font-semibold border transition-all ${inWishlist ? "border-gold-500 text-gold-400" : "border-luxury-border text-luxury-muted hover:border-gold-500 hover:text-gold-400"}`}>
+                                {wishlistMsg || (inWishlist ? "♥  Saved to Wishlist" : "♡  Save to Wishlist")}
                             </button>
                         </div>
 

@@ -13,7 +13,8 @@ export function CartProvider({ children }) {
         if (!user) { setCartItems([]); return; }
         try {
             const snap = await getDocs(collection(db, "users", user.uid, "cart"));
-            setCartItems(snap.docs.map((d) => ({ docId: d.id, ...d.data() })));
+            const items = snap.docs.map((d) => ({ docId: d.id, ...d.data() }));
+            setCartItems(items);
         } catch (e) {
             console.error("Cart fetch failed:", e);
         }
@@ -22,12 +23,11 @@ export function CartProvider({ children }) {
     useEffect(() => { fetchCart(); }, [fetchCart]);
 
     const addToCart = useCallback(async (product) => {
-        if (!user) return false;
+        if (!user || !product?.id) return false;
         // prevent duplicates
-        const exists = cartItems.find((i) => i.productId === product.id);
-        if (exists) return false;
+        if (cartItems.some((i) => i.productId === product.id)) return false;
         try {
-            const ref = await addDoc(collection(db, "users", user.uid, "cart"), {
+            await addDoc(collection(db, "users", user.uid, "cart"), {
                 productId: product.id,
                 name: product.name,
                 price: product.price,
@@ -35,7 +35,11 @@ export function CartProvider({ children }) {
                 gender: product.gender || "",
                 subCategory: product.subCategory || "",
             });
-            setCartItems((prev) => [...prev, { docId: ref.id, productId: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl || "" }]);
+            // Refetch cart to ensure data persisted correctly
+            setTimeout(async () => {
+                const snap = await getDocs(collection(db, "users", user.uid, "cart"));
+                setCartItems(snap.docs.map((d) => ({ docId: d.id, ...d.data() })));
+            }, 200);
             return true;
         } catch (e) {
             console.error("Add to cart failed:", e);

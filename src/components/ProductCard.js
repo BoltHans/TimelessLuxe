@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { db } from "../firebase";
 import { doc, setDoc, deleteDoc, getDoc } from "firebase/firestore";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function ProductCard({ product }) {
     const { user } = useAuth();
@@ -13,6 +13,20 @@ export default function ProductCard({ product }) {
     const [cartLoading, setCartLoading] = useState(false);
     const [inWishlist, setInWishlist] = useState(false);
     const [cartMsg, setCartMsg] = useState("");
+
+    // Check if product is in wishlist on mount
+    useEffect(() => {
+        if (!user || !product?.id) return;
+        const checkWishlist = async () => {
+            try {
+                const snap = await getDoc(doc(db, "users", user.uid, "wishlist", product.id));
+                setInWishlist(snap.exists());
+            } catch (e) {
+                console.error("Check wishlist error:", e);
+            }
+        };
+        checkWishlist();
+    }, [user, product?.id]);
 
     const handleWishlist = async (e) => {
         e.stopPropagation();
@@ -26,9 +40,16 @@ export default function ProductCard({ product }) {
                 setInWishlist(false);
             } else {
                 await setDoc(ref, { productId: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl || "" });
-                setInWishlist(true);
+                // Verify the write succeeded
+                setTimeout(async () => {
+                    const verifySnap = await getDoc(ref);
+                    setInWishlist(verifySnap.exists());
+                }, 150);
             }
-        } catch (e) { console.error("Wishlist error:", e); }
+        } catch (e) { 
+            console.error("Wishlist error:", e);
+            setInWishlist(false);
+        }
         setWishlistLoading(false);
     };
 
